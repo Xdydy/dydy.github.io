@@ -103,7 +103,7 @@ theme: hexo-theme-quiet
 ## Docs: https://hexo.io/docs/one-command-deployment
 deploy:
   type: git
-  repo: https://github.com/Xdydy/Xdydy.github.io
+  repo: git@github.com:Xdydy/Xdydy.github.io.git
   branch: gh-pages
 
 # 首页文章布局
