@@ -97,13 +97,13 @@ pagination_dir: page
 # Extensions
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
-theme: landscape
+theme: Quiet
 
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
 deploy:
   type: git
-  repo: https://github.com/Xdydy/dydy.github.io
+  repo: https://github.com/Xdydy/Xdydy.github.io
   branch: gh-pages
 
 # 首页文章布局
