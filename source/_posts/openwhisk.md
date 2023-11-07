@@ -2,6 +2,7 @@
 title: OpenWhisk 学习笔记
 date: 2023-10-29 08:27:00
 excerpt: 本笔记记录OpenWhisk
+author: dydy
 tags:
 - OpenWhisk
 

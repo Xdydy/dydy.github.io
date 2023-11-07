@@ -2,6 +2,7 @@
 title: Serverless 函数编排
 date: 2023-11-01 09:00:00
 excerpt: 记录函数编排的相关论文阅读研究
+author: dydy
 tags:
 - Serverless
 - Function orchestration
@@ -10,6 +11,32 @@ categories:
 - 科研
 ---
 
+
+# 系统目标
+
+- 构建一套基于事件驱动的有限状态机模型的函数编排系统，可以编排不同云平台上的 Serverless 函数
+  - 异构平台的标准化
+    - 支持不同云平台函数的运行时
+    - 支持不同云平台的事件处理
+  - 高效执行
+    - 基于事件驱动的有限状态机模型
+    - 函数并行度优化
+  - 简单部署
+    - 前端：函数式编程
+    - 中端：Workflow 静态图
+    - 后端：运行时组件
+
+# 模型构建
+
+## 有限状态机模型
+
+使用有限状态机管理触发器
+
+## 事件抽象
+
+事件作为外部输入关系触发器
+
+## 函数流
 
 # 参考文献
 
@@ -32,7 +59,6 @@ categories:
   - 有必要为每个步骤创建不同的队列或目录
   - 触发器不能够一直等到前面多个函数的执行结束
   - 触发器不适用于错误处理
--
 
 ### 相关工作
 
@@ -57,7 +83,6 @@ categories:
 - 谷歌云提供了 Google Cloud Workflows 服务。它的工作流包括了一系列的基于逻辑的步骤，逻辑类似于条件或者循环。可以通过对每一个步骤发出一个 HTTP Request 的方式来触发 Google Cloud Function
 
   - 不适合用来做广播的并行任务
--
 
 ### 模型定义
 
@@ -79,17 +104,17 @@ categories:
     - 条件：由用户定义的决定事件是否匹配行为
     - 行为：用于异步地触发一个 Serverless 函数
 
-> 触发器的生命周期可以表示如下：
->
-> 1. 一个事件由某些事件源产生
-> 2. 事件被系统消费，激活对应的触发器
-> 3. 事件由 Condition 函数处理，若结果是正确的，就交由 Action 函数处理
-> 4. Action 函数被激活了，就称作该触发器被 fired
-> 5. 当一个触发器被 fired 的时候，他就可以被 disabled 或者由系统 maintain
->    - Mapping Workflows to Triggers：一个工作流可以通过一系列触发器进行映射
->    - 任意工作流抽象都可以通过有限状态机表示，可以被转化为各种各样的触发器，并且通过 TriggerFlow 表示
->    - Substitution Principle：工作流本身通过初始化和终止遵守操作。工作流可以嵌套
->    - Dynamic Trigger Interception：
+  > 触发器的生命周期可以表示如下：
+  >
+  > 1. 一个事件由某些事件源产生
+  > 2. 事件被系统消费，激活对应的触发器
+  > 3. 事件由 Condition 函数处理，若结果是正确的，就交由 Action 函数处理
+  > 4. Action 函数被激活了，就称作该触发器被 fired
+  > 5. 当一个触发器被 fired 的时候，他就可以被 disabled 或者由系统 maintain
+  >    - Mapping Workflows to Triggers：一个工作流可以通过一系列触发器进行映射
+  >    - 任意工作流抽象都可以通过有限状态机表示，可以被转化为各种各样的触发器，并且通过 TriggerFlow 表示
+  >    - Substitution Principle：工作流本身通过初始化和终止遵守操作。工作流可以嵌套
+  >    - Dynamic Trigger Interception：
 
 - 错误容忍：
   - 事件总线保证事件的至少一次传递
@@ -140,3 +165,55 @@ categories:
 | Amazon Step Functions (ASF)   | 不满足，因为函数编排不是函数 | - 支持顺序和分支，函数重试以及并行。- 只能静态图- 提供了反射 API 查询状态以及取消执行- 通过 CloudWatch 监控 | 支持                       | 32KB 的限制        | 外部编排器         |                          |
 | IBM Composer                  | 满足，也是第一个满足的       | - 提供了完整的编排库- 不提供并行的 DSL- 但是可以将函数作为前端接口暴露- 不支持反射 API，只能通过日志        | 不支持                     | 5MB 的状态转移限制 | 集成在反应式核心中 | 提供了包，支持用户上传包 |
 | Azure Durable Functions (ADF) | 满足                         | - 通过 C#代码创建函数流- 提供了反射 API，不仅能获取当前的状态，也能触发事件到一个挂起的函数                 | 支持                       | 不限制             | 外部编排器         | 提供了非常简单的包       |
+
+## [FaaSFlow: enable efficient workflow execution for function-as-a-service](https://dl.acm.org/doi/10.1145/3503222.3507717)
+
+### 解决问题
+
+- 传统的 master-worker 架构性能太差
+  - master 的调度模式，通过该模式，功能在 master 节点中触发并分配给工作节点来执行。
+  - worker 之间的数据移动也会降低吞吐量。
+
+> These serverless workflow systems usually provide a centralized workflow engine on the master node to manage the workflow execution state and assign function tasks to the worker nodes. We refer to this scheduling pattern as master-side workflow schedule pattern (denoted by MasterSP), as the central workflow engine in the master node determines whether a function task is triggered to run or not
+> ![](../assets/serverless_workflow/ZlhlbGgQ7oYaSrx0LlycRwvinbg.png)
+> 这些无服务器工作流系统通常在主节点上提供集中式工作流引擎来管理工作流执行状态并将功能任务分配给工作节点。我们将这种调度模式称为主端工作流调度模式（记为 MasterSP），由主节点中的中央工作流引擎决定是否触发功能任务运行
+
+- 带来的问题
+  - 中央工作流引擎负责动态管理和调度所有功能。函数执行状态频繁地从主节点转移到工作节点，带来大量的调度开销。由于函数很短，这种传输会频繁发生。
+  - 引擎“随机”将触发的函数分发到工作节点以实现负载均衡，云厂商对函数的输入输出数据大小进行配额，以避免严重消耗网络带宽。在生产无服务器平台中，用户通常依赖额外的数据库存储服务来进行临时数据存储和交付，从而承受巨大的数据移动开销
+
+### 工作难点
+
+- WorkerSP: 大规模工作流划分为控制平面以及数据平面
+
+  - worker 函数可以执行自动缩放并重用热容器，这导致控制平面中的每个功能节点在数据中可能具有多个不同的数据平面
+  - 在无服务器工作流的实际控制平面（用户预定义）和数据平面（数据依赖）不一定相同的情况下，将大规模工作流划分为两个不同平面的多个工作人员时具有挑战性
+  - 考虑到集群中资源动态变化的前提，还需要一种基于实时资源可用性来划分和调度工作流的机制
+- FaaStore: 利用主内存在函数之间交换数据
+
+  - 没有理论指导
+
+### 相关工作
+
+- 函数冷启动问题
+- Serverless Workflow 优化
+
+### 模型定义
+
+- FaaSFlow
+  - 工作流图调度程序在 `Master` 节点上运行。图调度器解析用户上传的工作流，根据每个工作节点上的可用资源和相邻功能之间传输的数据量将工作流划分为子图。
+  - 在每个 `Worker` 节点上，
+    - FaaSFlow 运行一个 `pre-worker` 工作流引擎来管理函数状态并触发本地函数任务，
+    - 一个集成的 FaaStore 在运行时动态分配容器中超额配置的内存
+  - FaaStore
+    - 使用适当的数据存储（容器中分配良好的主内存或远程存储）来支持基于功能的位置和依赖性的通信。
+
+#### Graph Scheduler
+
+#### Per-Worker Workflow Engine
+
+#### Memory Reclamation in FaaStore
+
+### 开源代码
+
+[https://github.com/lzjzx1122/FaaSFlow](https://github.com/lzjzx1122/FaaSFlow)

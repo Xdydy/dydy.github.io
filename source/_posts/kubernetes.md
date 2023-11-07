@@ -2,6 +2,7 @@
 title: Kubernetes 学习笔记
 date: 2023-10-29 09:09:00
 excerpt: 本笔记记录 Kubernetes
+author: dydy
 tags:
 - Kubernetes
 
