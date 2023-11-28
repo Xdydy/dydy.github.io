@@ -266,6 +266,27 @@ FaaS 编程模式的无状态问题
     - Akka Serverless
     - Azure Durable Entities
 
+
+
+### Durable Functions
+  DF定义了三种基本的函数
+- 活动函数是DF中的无状态函数
+- 实体是封装应用程序状态和流程操作的一个actor
+- 编排函数使用任务并行的风格去协调活动函数和实体
+
+#### Orchestrations
+编排允许开发人员通过将计算分解为任务来创建长时间运行的计算和工作流程。
+- 顺序组合
+- 并行组合
+- 持久化组合
+- 客户端操作。客户端对象用来提供DF运行时的接口
+
+#### Entities
+实体允许应用程序封装持久状态，并定义可以对其执行的操作
+- 编排调用以及信号触发。编排函数可以通过调用或者发送信号的方式access实体
+- 实体间信号。这可以实现有用的模式，例如使用实体来表示有状态的流操作符，甚至是复杂的数据流图
+- 有序信号。DF 支持按指定传送时间安排信号。这对于需要在特定时间执行的操作非常有用
+
 ## [The Serverless Trilemma Function Composition for Serverless Computing](https://dl.acm.org/doi/pdf/10.1145/3133850.3133855)
 
 ### 解决问题
