@@ -35,7 +35,7 @@
 <meta property="og:image" content="http://example.com/assets/serverless_workflow/Q3sObQMVAowi7Mx8WzDc2Ls2nmc.png">
 <meta property="og:image" content="http://example.com/assets/serverless_workflow/Kq8rbg0g3o8iUexQ8rjcZ6UnnjS.png">
 <meta property="article:published_time" content="2023-11-01T01:00:00.000Z">
-<meta property="article:modified_time" content="2023-11-21T07:33:40.585Z">
+<meta property="article:modified_time" content="2023-11-28T07:28:15.889Z">
 <meta property="article:author" content="John Doe">
 <meta property="article:tag" content="Serverless">
 <meta property="article:tag" content="Function orchestration">
@@ -244,7 +244,7 @@
         
         
         
-          91 分钟
+          94 分钟
         
       </span>
     
@@ -595,6 +595,25 @@
 </li>
 </ul>
 </li>
+</ul>
+<h3 id="Durable-Functions"><a href="#Durable-Functions" class="headerlink" title="Durable Functions"></a>Durable Functions</h3><p>  DF定义了三种基本的函数</p>
+<ul>
+<li>活动函数是DF中的无状态函数</li>
+<li>实体是封装应用程序状态和流程操作的一个actor</li>
+<li>编排函数使用任务并行的风格去协调活动函数和实体</li>
+</ul>
+<h4 id="Orchestrations"><a href="#Orchestrations" class="headerlink" title="Orchestrations"></a>Orchestrations</h4><p>编排允许开发人员通过将计算分解为任务来创建长时间运行的计算和工作流程。</p>
+<ul>
+<li>顺序组合</li>
+<li>并行组合</li>
+<li>持久化组合</li>
+<li>客户端操作。客户端对象用来提供DF运行时的接口</li>
+</ul>
+<h4 id="Entities"><a href="#Entities" class="headerlink" title="Entities"></a>Entities</h4><p>实体允许应用程序封装持久状态，并定义可以对其执行的操作</p>
+<ul>
+<li>编排调用以及信号触发。编排函数可以通过调用或者发送信号的方式access实体</li>
+<li>实体间信号。这可以实现有用的模式，例如使用实体来表示有状态的流操作符，甚至是复杂的数据流图</li>
+<li>有序信号。DF 支持按指定传送时间安排信号。这对于需要在特定时间执行的操作非常有用</li>
 </ul>
 <h2 id="The-Serverless-Trilemma-Function-Composition-for-Serverless-Computing"><a href="#The-Serverless-Trilemma-Function-Composition-for-Serverless-Computing" class="headerlink" title="The Serverless Trilemma Function Composition for Serverless Computing"></a><a target="_blank" rel="noopener" href="https://dl.acm.org/doi/pdf/10.1145/3133850.3133855">The Serverless Trilemma Function Composition for Serverless Computing</a></h2><h3 id="解决问题-5"><a href="#解决问题-5" class="headerlink" title="解决问题"></a>解决问题</h3><ul>
 <li>描述了 Serverless 计算中关于函数组合的困难：Serverless trilemma<ul>
