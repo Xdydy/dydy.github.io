@@ -8,6 +8,9 @@ dependencies:
   hexo:
     specifier: ^6.3.0
     version: 6.3.0
+  hexo-blog-encrypt:
+    specifier: ^3.1.9
+    version: 3.1.9
   hexo-deployer-git:
     specifier: ^4.0.0
     version: 4.0.0
@@ -23,6 +26,9 @@ dependencies:
   hexo-generator-tag:
     specifier: ^2.0.0
     version: 2.0.0
+  hexo-hide-posts:
+    specifier: ^0.4.0
+    version: 0.4.0
   hexo-renderer-ejs:
     specifier: ^2.0.0
     version: 2.0.0
@@ -30,14 +36,17 @@ dependencies:
     specifier: ^4.0.0
     version: 4.0.0
   hexo-renderer-marked:
-    specifier: ^6.1.1
-    version: 6.1.1
+    specifier: ^6.2.0
+    version: 6.2.0
   hexo-renderer-stylus:
     specifier: ^3.0.0
     version: 3.0.0
   hexo-server:
     specifier: ^3.0.0
     version: 3.0.0
+  hexo-theme-fluid:
+    specifier: ^1.9.5-a
+    version: 1.9.5-a(nunjucks@3.2.4)
   hexo-theme-landscape:
     specifier: ^1.0.0
     version: 1.0.0
@@ -59,6 +68,7 @@ packages:
 
   /abab@2.0.6:
     resolution: {integrity: sha512-j2afSsaIENvHZN2B8GOpF566vZ5WVk5opAiMTvWgaQT8DkbOqsTfvNAvHoRGU2zzP8cPoqys+xHTRDWW8L+/BA==}
+    deprecated: Use your platform's native atob() and btoa() methods instead
     dev: false
 
   /abbrev@1.1.1:
@@ -342,6 +352,7 @@ packages:
 
   /debug@3.2.7:
     resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
+    requiresBuild: true
     peerDependencies:
       supports-color: '*'
     peerDependenciesMeta:
@@ -416,6 +427,7 @@ packages:
   /domexception@4.0.0:
     resolution: {integrity: sha512-A2is4PLG+eeSfoTMA95/s4pvAoSo2mKtiM5jlHkAVewmiO8ISFTFKZjH7UAM1Atli/OT/7JHOrJRJiMKUZKYBw==}
     engines: {node: '>=12'}
+    deprecated: Use your platform's native DOMException instead
     dependencies:
       webidl-conversions: 7.0.0
     dev: false
@@ -627,6 +639,10 @@ packages:
       function-bind: 1.1.2
     dev: false
 
+  /hexo-blog-encrypt@3.1.9:
+    resolution: {integrity: sha512-dzuZiW5mD8t1FOhJXqc+IgV1Tc45YtatJb/w8k4PyT9McQxsROQXsBw+zbDembzuqMnbnkCeT2SapZ/r9AgAcw==}
+    dev: false
+
   /hexo-cli@4.3.1:
     resolution: {integrity: sha512-nYe7yJhXT7MwlDEpIAjneMfz0wnWTdIhRv+cVW2OPTw8JtG2X+8Y/sYhPDvQz/ZqjFRZ4qgiKFXN5orFJ/u1vg==}
     engines: {node: '>=14'}
@@ -713,6 +729,12 @@ packages:
       hexo-pagination: 3.0.0
     dev: false
 
+  /hexo-hide-posts@0.4.0:
+    resolution: {integrity: sha512-qSdCoNG2FRxX/7TKJHPINOK/KbfaqqMgT1LHNAYPN1P0MgL187b0A6sCduevoIMlN0i/xK0yNlS/UDRQwVdZGw==}
+    dependencies:
+      chalk: 4.1.2
+    dev: false
+
   /hexo-i18n@1.0.0:
     resolution: {integrity: sha512-yw90JHr7ybUHN/QOkpHmlWJj1luVk5/v8CUU5NRA0n4TFp6av8NT7ujZ10GDawgnQEdMHnN5PUfAbNIVGR6axg==}
     engines: {node: '>=8.6.0'}
@@ -756,8 +778,8 @@ packages:
       - supports-color
     dev: false
 
-  /hexo-renderer-marked@6.1.1:
-    resolution: {integrity: sha512-vllmRFwl9A1NP/llQW2TbDnyvqaQKgktxXw7c+tK7XVQJmfIUnl32dr8M4jRYqYe5m9972eYm09kBXV8rBtA/A==}
+  /hexo-renderer-marked@6.2.0:
+    resolution: {integrity: sha512-/TwgQCAmqYIyxONzrgqokw0n8rU6W/lCtgbjhWcMoZxhwTaQCYpzaO0+sdu+PKXf9BL4910pg+xAbeFaqqIIrA==}
     engines: {node: '>=14'}
     dependencies:
       dompurify: 3.0.6
@@ -795,6 +817,15 @@ packages:
       serve-static: 1.15.0
     transitivePeerDependencies:
       - supports-color
+    dev: false
+
+  /hexo-theme-fluid@1.9.5-a(nunjucks@3.2.4):
+    resolution: {integrity: sha512-lmpLUtYfEDTFoOAuhZ8wNPzfS8DU9Kbck/JGvpPBWkss2xSNddgRGxpJEpAAdD2ikUf3KI5sehOPMBfk9yVDfQ==}
+    engines: {node: '>=8.10.0'}
+    peerDependencies:
+      nunjucks: ^3.0.0
+    dependencies:
+      nunjucks: 3.2.4
     dev: false
 
   /hexo-theme-landscape@1.0.0:
@@ -1371,6 +1402,7 @@ packages:
   /pify@4.0.1:
     resolution: {integrity: sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==}
     engines: {node: '>=6'}
+    requiresBuild: true
     dev: false
     optional: true
 
@@ -1386,6 +1418,7 @@ packages:
 
   /prr@1.0.1:
     resolution: {integrity: sha512-yPw4Sng1gWghHQWj0B3ZggWUm4qVbPwPFcRG8KyxiU7J2OHFSoEHKS+EZ3fv5l1t9CyCiop6l/ZYeWbrgoQejw==}
+    requiresBuild: true
     dev: false
     optional: true
 
@@ -1466,6 +1499,7 @@ packages:
   /semver@5.7.2:
     resolution: {integrity: sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g==}
     hasBin: true
+    requiresBuild: true
     dev: false
     optional: true
 
