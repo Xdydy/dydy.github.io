@@ -1,3 +1,16 @@
+---
+title: Ray 学习笔记
+# date: 2023-11-01 09:00:00
+excerpt: 记录Ray
+author: dydy
+tags:
+- Serverless
+- AI
+
+categories:
+- 科研
+---
+
 # Ray 学习笔记
 
 # Ray 概述
