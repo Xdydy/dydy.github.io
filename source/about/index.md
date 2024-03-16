@@ -29,3 +29,6 @@ layout: about
   - Lark5: 国产C++基础软件
   - 基于Serverless的云边协同控制系统
   - Faasit: 服务无感知计算系统
+
+- 个人专利
+  - [一种Serverless函数流的本地部署方法](https://patentimages.storage.googleapis.com/8b/43/13/410227f5db0546/CN117519842A.pdf)
