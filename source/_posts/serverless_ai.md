@@ -422,3 +422,127 @@ categories:
   - 带宽 (b)，将模型从存储传输到 GPU 的可用速度
 
 #### 估计模型迁移时间
+
+## [FuncPipe: A Pipelined Serverless Framework for Fast and Cost-Efficient Training of Deep Learning Mod](https://dl.acm.org/doi/abs/10.1145/3570607)
+
+### 解决问题
+
+- 深度学习在 Serverless 平台上的训练有障碍
+
+  - Serverless 基础设施的资源限制
+  - 深度学习模型对内存和带宽的爆炸性需求
+- FuncPipe 贡献
+
+  - Serverless 训练的流水线框架：利用模型分区来弥合上述的差距
+  - 流水线的 scatter-reduce 算法：提高通信效率
+  - 使用混合整数二次规划（MIQP）：制定模型划分和资源分配的协同优化问题
+
+### 背景知识
+
+- Serverless 训练的好处
+
+  - 不用配置虚拟机，不用管理集群
+  - 按需付费
+  - 资源弹性扩充
+- DL 训练的通信方式
+
+  - 集中式：参数服务器。Worker 给参数，服务器返还参数。例如 Cirrus
+  - 去中心化：基于某种协议（例如 all-reduce 或者 scatter-reduce）
+
+### 问题描述
+
+- Serverless 通信能力不能满足 DL 训练的通信需求
+
+  - 传输的数据量少（带宽低）
+  - 延迟高（不具备直接通信能力，依赖于中间件）
+- Serverless 内存占用小
+- 问题定义：
+
+  - 如何划分深度学习模型
+    - 之前的工作都是基于静态的资源，只追求最大的吞吐量
+  - 如何为每个 Serverless 函数分配资源
+
+### 系统设计
+
+![](../assets/serverless_ai/HrwgbwXlZoLJ6lxXdf1cNM8zn6b.png)
+
+#### 系统架构
+
+- 启动组件
+- 运行时组件
+- 客户端 API
+
+  - 设置、部署、监控训练
+
+#### 训练流水线
+
+![](../assets/serverless_ai/UT2NbJD47ox21wxuGhLcBXrdnSd.png)
+
+- 执行同步训练，避免潜在的收敛和准确性问题
+
+  - 数据被分为微批次
+    - 所有的微批次都会经过每个分区进行前向计算
+    - 所有前向计算完成后，微批次以相反的顺序进行反向计算
+- 每个 Worker 有两种任务
+
+  - 通信任务
+    - 分为上行、下行以及同步
+    - 上行下行通过云存储完成，同步在处于同一个配置的 Worker 在一轮迭代后执行
+  - 计算任务
+- 类似工作：GPipe。不同点：将通信任务视为管道阶段并将其与计算任务重叠
+
+#### 分散减少流水线(scatter-reduce)
+
+![](../assets/serverless_ai/YxGabeGbUod133xwYIicvqBon79.png)
+
+- 流水线存储的分散减少算法
+
+  - 将梯度划分为 n 个分割，利用所有 worker 的计算资源进行梯度聚合，那么每个 worker 符合合并一个 split
+  - 三个阶段
+    - 每个 worker 将其他 worker 负责的 n-1 个梯度分割上传到存储
+    - 第 i 个 worker 将其他 worker 上传的第 i 个 Worker 聚合并计算聚合后的梯度
+    - 每个 worker 上传合并后的分割并计算所有其他合并的分割
+- 改进后的分散减少算法
+
+  - n 个步骤
+    - 第 1 步，第 i 个 worker 上传 i+1 分割
+    - 第 k 步，第 i 个 worker 上传 i+k 分割，并下载 i-(k-1)
+    - 第 n 步，第 i 个 worker 已经上传了所有分割，并且从下一个 worker 获得梯度
+
+#### 模型划分与资源分配的协同优化
+
+（没看懂）
+
+### 系统实现
+
+- 管道任务堆叠：通过 DAG 图保证数据并行
+
+  - 不同类型的任务用不同的资源需求
+  - 将他们组合成一个 DAG 并通过任务执行器进行管理
+  - 每个节点都有一个 ID 并且有一堆依赖的节点 ID，当依赖资源满足时可以保证恰好一次进行
+- 基于存储的通信
+
+  - 不同分区的发送和接受
+  - 分区副本之间的分散减少
+  - 通信使用 Python pickle 序列化并上传到存储桶
+- 局限性
+
+  - 单个层次内存过大会把 Serverless 函数弄爆
+  - 可能得解决方案是张量并行
+  - 使用张量并行性增加了所提出的协同优化方法的复杂性，因为额外的决策维度极大地扩展了搜索空间
+
+### 部分代码实现
+
+![](../assets/serverless_ai/IcO8btF5zol6Bex960XcWQyFnxh.png)
+
+![](../assets/serverless_ai/DtNBbLlA0oOhSKxkIKwcUGIen0c.png)
+
+## [ElasticFlow: An Elastic Serverless Training Platform for Distributed Deep Learning](https://dl.acm.org/doi/10.1145/3575693.3575721)
+
+### 解决问题
+
+- 一个用于深度学习的弹性的 Serverless 训练平台
+
+  - 用户只需要指定作业的深度神经网络模型和超参数，无需指定 GPU 的数量
+  - 用户指定作业的 ddl，但不指定占用 GPU 的时间量
+-
