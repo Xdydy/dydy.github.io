@@ -238,9 +238,9 @@ for r in results:
     print("Prediction output size:", r)
 ```
 
-![](../assets/ray//Xu3vbaalIo7AlixmWnvc0sRgnRg.png)
+![](../assets/ray/Xu3vbaalIo7AlixmWnvc0sRgnRg.png)
 
-![](../assets/ray//XEoOb1oxEoMobuxs84JcT6bPn3b.png)
+![](../assets/ray/XEoOb1oxEoMobuxs84JcT6bPn3b.png)
 
 #### 基于 Actor 的批量预测
 
@@ -316,7 +316,7 @@ for file in input_files:
 - 可扩展配置：对于 Worker 的配置以及计算资源的配置
 - 训练器：将上述三个概念打包起来构建一个分布式训练任务
 
-![](../assets/ray//FbZTbh6NXorjG1xQBmtc1RmnnRg.png)
+![](../assets/ray/FbZTbh6NXorjG1xQBmtc1RmnnRg.png)
 
 ### 编程模型
 
@@ -324,7 +324,7 @@ for file in input_files:
 
 `trainer` 会构建一个 `TorchTriainer`，当调用 `trainer.fit` 的时候，会构建 `Actor` 自动部署；其实在 `dataset` 的时候也部署了一个 `Actor`
 
-![](../assets/ray//HQDHboqcyo6aVKxssuEcrJ5Ynjb.png)
+![](../assets/ray/HQDHboqcyo6aVKxssuEcrJ5Ynjb.png)
 
 从调用堆栈可以看出，最后会调用到 `actor_manager.py`。
 
@@ -495,7 +495,7 @@ result = trainer.fit()
 
 Ray Train 运行会生成报告指标、检查点和其他工件的历史记录。您可以将它们配置为保存到持久存储位置。
 
-![](../assets/ray//Q9GWbgQDvodZdBxPq5DcVGGpnOd.png)
+![](../assets/ray/Q9GWbgQDvodZdBxPq5DcVGGpnOd.png)
 
 持久化存储能够
 
@@ -511,6 +511,213 @@ Ray Train 提供了一个快照训练过程的进程
 - 容错：让长时运行工作从节点错误中恢复
 - 分布式检查点：当进行模型并行训练时，Ray Train 检查点提供了一个简单的方法用于更新模型分片，而不是将整个模型集中到单节点
 - 与 Ray Tune 集成
+
+#### MNIST
+
+```python
+import os
+from typing import Dict
+
+import torch
+from filelock import FileLock
+from torch import nn
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+from torchvision.transforms import Normalize, ToTensor
+from tqdm import tqdm
+
+import ray.train
+from ray.train import ScalingConfig
+from ray.train.torch import TorchTrainer
+
+
+def get_dataloaders(batch_size):
+    # Transform to normalize the input images
+    transform = transforms.Compose([ToTensor(), Normalize((0.5,), (0.5,))])
+
+    with FileLock(os.path.expanduser("~/data.lock")):
+        # Download training data from open datasets
+        training_data = datasets.FashionMNIST(
+            root="~/data",
+            train=True,
+            download=True,
+            transform=transform,
+        )
+
+        # Download test data from open datasets
+        test_data = datasets.FashionMNIST(
+            root="~/data",
+            train=False,
+            download=True,
+            transform=transform,
+        )
+
+    # Create data loaders
+    train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_data, batch_size=batch_size)
+
+    return train_dataloader, test_dataloader
+
+
+# Model Definition
+class NeuralNetwork(nn.Module):
+    def __init__(self):
+        super(NeuralNetwork, self).__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(28 * 28, 512),
+            nn.ReLU(),
+            nn.Dropout(0.25),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Dropout(0.25),
+            nn.Linear(512, 10),
+            nn.ReLU(),
+        )
+
+    def forward(self, x):
+        x = self.flatten(x)
+        logits = self.linear_relu_stack(x)
+        return logits
+
+
+def train_func_per_worker(config: Dict):
+    lr = config["lr"]
+    epochs = config["epochs"]
+    batch_size = config["batch_size_per_worker"]
+
+    # Get dataloaders inside the worker training function
+    train_dataloader, test_dataloader = get_dataloaders(batch_size=batch_size)
+
+    # [1] Prepare Dataloader for distributed training
+    # Shard the datasets among workers and move batches to the correct device
+    # =======================================================================
+    train_dataloader = ray.train.torch.prepare_data_loader(train_dataloader)
+    test_dataloader = ray.train.torch.prepare_data_loader(test_dataloader)
+
+    model = NeuralNetwork()
+
+    # [2] Prepare and wrap your model with DistributedDataParallel
+    # Move the model to the correct GPU/CPU device
+    # ============================================================
+    model = ray.train.torch.prepare_model(model)
+
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+
+    # Model training loop
+    for epoch in range(epochs):
+        if ray.train.get_context().get_world_size() > 1:
+            # Required for the distributed sampler to shuffle properly across epochs.
+            train_dataloader.sampler.set_epoch(epoch)
+
+        model.train()
+        for X, y in tqdm(train_dataloader, desc=f"Train Epoch {epoch}"):
+            pred = model(X)
+            loss = loss_fn(pred, y)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        model.eval()
+        test_loss, num_correct, num_total = 0, 0, 0
+        with torch.no_grad():
+            for X, y in tqdm(test_dataloader, desc=f"Test Epoch {epoch}"):
+                pred = model(X)
+                loss = loss_fn(pred, y)
+
+                test_loss += loss.item()
+                num_total += y.shape[0]
+                num_correct += (pred.argmax(1) == y).sum().item()
+
+        test_loss /= len(test_dataloader)
+        accuracy = num_correct / num_total
+
+        # [3] Report metrics to Ray Train
+        # ===============================
+        ray.train.report(metrics={"loss": test_loss, "accuracy": accuracy})
+
+
+def train_fashion_mnist(num_workers=2, use_gpu=False):
+    global_batch_size = 32
+
+    train_config = {
+        "lr": 1e-3,
+        "epochs": 10,
+        "batch_size_per_worker": global_batch_size // num_workers,
+    }
+
+    # Configure computation resources
+    scaling_config = ScalingConfig(num_workers=num_workers, use_gpu=use_gpu)
+
+    # Initialize a Ray TorchTrainer
+    trainer = TorchTrainer(
+        train_loop_per_worker=train_func_per_worker,
+        train_loop_config=train_config,
+        scaling_config=scaling_config,
+    )
+
+    # [4] Start distributed training
+    # Run `train_func_per_worker` on all workers
+    # =============================================
+    result = trainer.fit()
+    print(f"Training result: {result}")
+
+
+if __name__ == "__main__":
+    train_fashion_mnist(num_workers=4, use_gpu=True)
+```
+
+- 机器没有 GPU
+
+![](../assets/ray/ZjPtb7jL4oCsrPxx695cgbIhn7c.png)
+
+- 使用 CPU
+
+![](../assets/ray/S1O8bVWCvoXX9CxK0d3c2gJdnib.png)
+
+![](../assets/ray/Npwhb1ZWOoAxwPxrCzgcXlOcnvc.png)
+
+![](../assets/ray/WXQkbtT3WoxiyOxMh9FcYENnnJe.png)
+
+![](../assets/ray/HRY8bsoNdo686txUKytcvOuTngf.png)
+
+![](../assets/ray/Kc3cbm5VpoaZ8HxWeMwcFHkOn5c.png)
+
+## Ray Cluster
+
+### 核心概念
+
+![](../assets/ray/HkAOb5DcAowy0uxM2lkcWFl8nfe.png)
+
+- Ray Cluster: 包含了一个 head 节点以及多个 worker 节点
+- head 节点：与 worker 节点不同，它还运行着一个全局控制存储以及自动扩缩容以及驱动进程
+- worker 节点：只负责管理 tasks 以及 actors
+- Ray autoscaler：运行在 head 节点上的一个进程。当资源需求超过了当前的负载，autoscaler 就会创建新的 worker
+- Ray Jobs：一套集合了 task、actor 以及 object 的工作流
+
+### 部署到 k8s 集群
+
+#### KubeRay
+
+KubeRay 提供了一个简单的 k8s 操作集合，简化了部署在 k8s 上部署 Ray 的流程，有 3 种自定义资源(CRDs)
+
+- RayCluster：KubeRay 全程管理集群的生命周期
+- RayJob：将一个 Job 提交到集群
+- RayServce：由两个部分创建起来
+
+  - RayCluster
+  - Ray Serve
+
+##### Ray Cluster
+
+> 其实它部署的是 k8s 的一个 service
+
+[RayCluster Quickstart — Ray 2.10.0](https://docs.ray.io/en/latest/cluster/kubernetes/getting-started/raycluster-quick-start.html)
+
+- 前提：安装 kubectl, helm
+-
 
 # Ray 系统架构
 
@@ -539,3 +746,188 @@ Ray Train 提供了一个快照训练过程的进程
 ## 分级部署调度器
 
 ## 分布式对象存储
+
+## 计算图模型
+
+Ray 可以通过构建一张任务图进行计算，相当于定义了一个 Job（workflow），实现任务的并行以及体现任务的依赖关系
+
+> 注意：Ray 里头所有的参数、数据，都是对象存储，也就是说，他们都是引用！！
+
+- 图
+
+  - 节点
+    - 数据节点：对象引用，可以给其他任务节点共享
+    - 任务节点：actor or task
+  - 边
+    - 数据边：从任务节点连到数据节点
+    - 控制边：从任务节点连到任务节点
+- 例子
+
+```python
+import ray
+
+@ray.remote
+class Actor:
+    def __init__(self, init_value):
+        self.i = init_value
+
+    def inc(self, x):
+        self.i += x
+
+    def get(self):
+        return self.i
+
+@ray.remote
+def combine(x,y):
+    return x+y
+
+a1 = Actor.bind(10)
+res = a1.get.bind()
+# print(res)
+# assert ray.get(res.execute()) == 10
+
+a2 = Actor.bind(10)
+a1.inc.bind(2)
+a1.inc.bind(4)
+a2.inc.bind(6)
+dag = combine.bind(a1.get.bind(), a2.get.bind())
+
+print(dag)
+# assert ray.get(dag.execute()) == 32
+```
+
+![](../assets/ray/P0zWbSg5woe47Dx4wugcQTGJnwh.png)
+
+<details>
+
+```text
+(FunctionNode, 22f7de9ad6e545bf9421165c9b0daa2e)(
+    body=<function combine at 0x7ff1c6bdad40>
+    args=[
+        (ClassMethodNode, 28d860ab781e4f4f94e362a923be0e9f)(
+            body=get()
+            args=[]
+            kwargs={}
+            options={}
+            other_args_to_resolve={
+                parent_class_node:    
+                    (ClassNode, 3f006ec011b54f06af2118f01eaad8d1)(
+                        body=<class '__main__._modify_class.<locals>.Class'>
+                        args=[
+                            10, 
+                        ]
+                        kwargs={}
+                        options={}
+                        other_args_to_resolve={}
+                    )
+                prev_class_method_call:    
+                    (ClassMethodNode, c0bfa13f0dd240ab954fa9506e64c1d1)(
+                        body=inc()
+                        args=[
+                            4, 
+                        ]
+                        kwargs={}
+                        options={}
+                        other_args_to_resolve={
+                            parent_class_node:    
+                                (ClassNode, 3f006ec011b54f06af2118f01eaad8d1)(
+                                    body=<class '__main__._modify_class.<locals>.Class'>
+                                    args=[
+                                        10, 
+                                    ]
+                                    kwargs={}
+                                    options={}
+                                    other_args_to_resolve={}
+                                )
+                            prev_class_method_call:    
+                                (ClassMethodNode, 2b0b97a018db4b4b86c537f12a7b29a7)(
+                                    body=inc()
+                                    args=[
+                                        2, 
+                                    ]
+                                    kwargs={}
+                                    options={}
+                                    other_args_to_resolve={
+                                        parent_class_node:    
+                                            (ClassNode, 3f006ec011b54f06af2118f01eaad8d1)(
+                                                body=<class '__main__._modify_class.<locals>.Class'>
+                                                args=[
+                                                    10, 
+                                                ]
+                                                kwargs={}
+                                                options={}
+                                                other_args_to_resolve={}
+                                            )
+                                        prev_class_method_call:    
+                                            (ClassMethodNode, 5d4bd2c5d7da46e4981e305a66111bcd)(
+                                                body=get()
+                                                args=[]
+                                                kwargs={}
+                                                options={}
+                                                other_args_to_resolve={
+                                                    parent_class_node:    
+                                                        (ClassNode, 3f006ec011b54f06af2118f01eaad8d1)(
+                                                            body=<class '__main__._modify_class.<locals>.Class'>
+                                                            args=[
+                                                                10, 
+                                                            ]
+                                                            kwargs={}
+                                                            options={}
+                                                            other_args_to_resolve={}
+                                                        )
+                                                    prev_class_method_call: None
+                                                }
+                                            )
+                                    }
+                                )
+                        }
+                    )
+            }
+        )
+        (ClassMethodNode, 40f69b66ce6847c5a80753b6a0287bf1)(
+            body=get()
+            args=[]
+            kwargs={}
+            options={}
+            other_args_to_resolve={
+                parent_class_node:    
+                    (ClassNode, c46160cae7a84e9ba3534c846df006f0)(
+                        body=<class '__main__._modify_class.<locals>.Class'>
+                        args=[
+                            10, 
+                        ]
+                        kwargs={}
+                        options={}
+                        other_args_to_resolve={}
+                    )
+                prev_class_method_call:    
+                    (ClassMethodNode, d4b285407bd9409584aef8cad7289c09)(
+                        body=inc()
+                        args=[
+                            6, 
+                        ]
+                        kwargs={}
+                        options={}
+                        other_args_to_resolve={
+                            parent_class_node:    
+                                (ClassNode, c46160cae7a84e9ba3534c846df006f0)(
+                                    body=<class '__main__._modify_class.<locals>.Class'>
+                                    args=[
+                                        10, 
+                                    ]
+                                    kwargs={}
+                                    options={}
+                                    other_args_to_resolve={}
+                                )
+                            prev_class_method_call: None
+                        }
+                    )
+            }
+        )
+    ]
+    kwargs={}
+    options={}
+    other_args_to_resolve={}
+)
+```
+</details>
