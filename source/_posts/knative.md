@@ -125,13 +125,20 @@ kn func version
 sudo kubeadm init
 ```
 
-- 配置ingress
-- 配置ingress-backend
 
 ### Knative-serving 安装
 
-- 配置 serving-crds.yaml
-- 配置 serving-core.yaml
+- 配置 `serving-crds.yaml`
+```bash
+wget https://github.com/knative/serving/releases/download/knative-v1.12.4/serving-crds.yaml
+kubectl apply -f serving-crds.yaml
+```
+- 配置 `serving-core.yaml`
+```bash
+wget https://github.com/knative/serving/releases/download/knative-v1.12.4/serving-core.yaml
+kubectl apply -f serving-core.yaml
+```
+
 - 配置网络
 
   - 使用 kourier
@@ -145,6 +152,20 @@ sudo kubeadm init
     --namespace knative-serving 
     --type merge 
     --patch '{"data":{"ingress-class":"kourier.ingress.networking.knative.dev"}}'
+
+    kubectl apply -f https://github.com/knative/serving/releases/download/knative-v1.12.4/serving-default-domain.yaml
+
+    # 10.0.0.233 is an arbitary choice.
+    EXTERNAL_IP="10.0.0.233"
+
+    # To get rid of the strange rules that default urls *.svc.cluster.local cannot be accessed from outside network. 
+    # sslip can avoid us from trouble of manipulating DNS record.
+    kubectl patch configmap/config-domain \
+      --namespace knative-serving \
+      --type merge \
+      --patch "{\"data\":{\"$EXTERNAL_IP.sslip.io\":\"\"}}"
+
+    kubectl patch svc kourier -n kourier-system -p "{\"spec\": {\"type\": \"LoadBalancer\", \"externalIPs\": [\"$EXTERNAL_IP\"]}}"
 
     # Fetch the External IP address or CNAME by running the command:
 
@@ -182,6 +203,22 @@ kubectl get svc -n kourier-system
 
 ```bash
 curl -v --noproxy '*' -H "Host: nodehello.default.example.com" http://10.106.92.238:80
+```
+
+- 解决方案2.0
+
+```bash
+# 10.0.0.233 is an arbitary choice.
+EXTERNAL_IP="10.0.0.233"
+
+# To get rid of the strange rules that default urls *.svc.cluster.local cannot be accessed from outside network. 
+# sslip can avoid us from trouble of manipulating DNS record.
+kubectl patch configmap/config-domain \
+      --namespace knative-serving \
+      --type merge \
+      --patch "{\"data\":{\"$EXTERNAL_IP.sslip.io\":\"\"}}"
+
+kubectl patch svc kourier -n kourier-system -p "{\"spec\": {\"type\": \"LoadBalancer\", \"externalIPs\": [\"$EXTERNAL_IP\"]}}"
 ```
 
 ## 
