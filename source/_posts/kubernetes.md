@@ -72,7 +72,9 @@ sudo chown $(id -u):$(id -g) .kube/config
 
 启动容器后可以通过`kubectl get pods -n kube-system`观察到几个`pods`能够顺利运行，除了两个`core-dns`一直在`pending`，所以这个时候需要安装网络插件，以下选择`calico`
 
-[calico配置链接](../assets/kubernetes/calico.yaml)
+```bash
+wget https://github.com/Xdydy/Xdydy.github.io/blob/main/source/assets/kubernetes/calico.yaml
+```
 
 下载后
 
