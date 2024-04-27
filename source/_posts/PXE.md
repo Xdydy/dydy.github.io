@@ -16,6 +16,8 @@ categories:
 
 # PXE 批量部署
 
+- 代码仓库：https://github.com/Xdydy/pxe
+
 # 概述
 
 PXE（Preboot Execution Environment，预启动执行环境）批量部署是一种通过网络对计算机系统进行安装和配置的技术。这种技术主要用于大规模部署操作系统，特别是在企业或教育机构等环境中，可以同时为多台计算机安装操作系统和软件。下面是 PXE 批量部署的主要步骤和特点：
